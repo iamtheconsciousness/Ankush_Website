@@ -1,0 +1,523 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply antialiased;
+  }
+
+  body {
+    @apply bg-black text-white;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.8s ease-in-out;
+  }
+
+  .animate-bounce {
+    animation: bounce 2s infinite;
+  }
+
+  /* Sophisticated navigation animations */
+  .nav-item {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .nav-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    transition: left 0.6s ease;
+  }
+
+  .nav-item:hover::before {
+    left: 100%;
+  }
+
+  /* Elegant underline animation */
+  .underline-animate {
+    position: relative;
+  }
+
+  .underline-animate::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.8), transparent);
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .underline-animate:hover::after {
+    width: 100%;
+  }
+
+  /* Floating animation for logo */
+  .logo-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-2px);
+    }
+  }
+
+  /* Glow effect for interactive elements */
+  .glow-hover {
+    transition: all 0.3s ease;
+  }
+
+  .glow-hover:hover {
+    box-shadow: 0 0 20px rgba(255,255,255,0.1);
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+      transform: translateY(0);
+    }
+    40% {
+      transform: translateY(-10px);
+    }
+    60% {
+      transform: translateY(-5px);
+    }
+  }
+
+  /* Background slideshow animations */
+  .bg-slideshow {
+    animation: slideshow 20s infinite;
+  }
+
+  @keyframes slideshow {
+    0%, 20% { opacity: 1; }
+    25%, 45% { opacity: 0; }
+    50%, 70% { opacity: 1; }
+    75%, 95% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+
+  /* Sophisticated text reveal animation */
+  .text-reveal {
+    overflow: hidden;
+  }
+
+  .text-reveal span {
+    display: inline-block;
+    transform: translateY(100%);
+    animation: textReveal 0.8s ease forwards;
+  }
+
+  @keyframes textReveal {
+    to {
+      transform: translateY(0);
+    }
+  }
+
+         /* Subtle pulse for active states */
+         .pulse-subtle {
+           animation: pulseSubtle 2s ease-in-out infinite;
+         }
+
+         @keyframes pulseSubtle {
+           0%, 100% {
+             opacity: 1;
+           }
+           50% {
+             opacity: 0.8;
+           }
+         }
+
+         /* Enhanced slideshow animations */
+         @keyframes fadeInScale {
+           0% {
+             opacity: 0;
+             transform: scale(1.1);
+           }
+           50% {
+             opacity: 0.7;
+             transform: scale(1.05);
+           }
+           100% {
+             opacity: 1;
+             transform: scale(1);
+           }
+         }
+
+         @keyframes slideInFromRight {
+           0% {
+             opacity: 0;
+             transform: translateX(20px);
+           }
+           100% {
+             opacity: 1;
+             transform: translateX(0);
+           }
+         }
+
+         @keyframes slideInFromLeft {
+           0% {
+             opacity: 0;
+             transform: translateX(-20px);
+           }
+           100% {
+             opacity: 1;
+             transform: translateX(0);
+           }
+         }
+
+         @keyframes slideInFromBottom {
+           0% {
+             opacity: 0;
+             transform: translateY(20px);
+           }
+           100% {
+             opacity: 1;
+             transform: translateY(0);
+           }
+         }
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Book Gallery Animations */
+@keyframes pageTurnNext {
+  0% {
+    transform: perspective(1000px) rotateY(0deg);
+    transform-origin: left center;
+  }
+  50% {
+    transform: perspective(1000px) rotateY(-90deg);
+    transform-origin: left center;
+  }
+  100% {
+    transform: perspective(1000px) rotateY(-180deg);
+    transform-origin: left center;
+  }
+}
+
+@keyframes pageTurnPrev {
+  0% {
+    transform: perspective(1000px) rotateY(-180deg);
+    transform-origin: left center;
+  }
+  50% {
+    transform: perspective(1000px) rotateY(-90deg);
+    transform-origin: left center;
+  }
+  100% {
+    transform: perspective(1000px) rotateY(0deg);
+    transform-origin: left center;
+  }
+}
+
+@keyframes bookOpen {
+  0% {
+    transform: perspective(1000px) rotateY(0deg);
+  }
+  100% {
+    transform: perspective(1000px) rotateY(-5deg);
+  }
+}
+
+@keyframes pageSlideIn {
+  0% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pageSlideOut {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+}
+
+.book-container {
+  perspective: 1000px;
+  transform-style: preserve-3d;
+}
+
+.book-page {
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+}
+
+.page-turning-next {
+  animation: pageTurnNext 0.6s ease-in-out;
+}
+
+.page-turning-prev {
+  animation: pageTurnPrev 0.6s ease-in-out;
+}
+
+.book-open {
+  animation: bookOpen 1s ease-out;
+}
+
+.page-slide-in {
+  animation: pageSlideIn 0.6s ease-out;
+}
+
+.page-slide-out {
+  animation: pageSlideOut 0.6s ease-out;
+}
+
+
+/* Polaroid Gallery Styles */
+.polaroid-container {
+  perspective: 1000px;
+}
+
+
+.polaroid-container:hover .polaroid-photo {
+  transform: rotateY(5deg) rotateX(5deg);
+}
+
+.polaroid-photo {
+  transition: transform 0.3s ease;
+  transform-style: preserve-3d;
+}
+
+@keyframes polaroidFloat {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(1deg);
+  }
+}
+
+.polaroid-float {
+  animation: polaroidFloat 6s ease-in-out infinite;
+}
+
+.polaroid-shadow {
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.1),
+    0 8px 16px rgba(0, 0, 0, 0.1),
+    0 16px 32px rgba(0, 0, 0, 0.1);
+}
+
+.polaroid-border {
+  border: 1px solid #e5e7eb;
+  border-radius: 2px;
+}
+
+         /* Slideshow specific animations */
+         .slideshow-container {
+           position: relative;
+           overflow: hidden;
+         }
+
+         .slideshow-image {
+           transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+         }
+
+         .slideshow-overlay {
+           transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+         }
+
+         .slideshow-progress {
+           transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+         }
+
+         .slideshow-indicator {
+           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+         }
+
+         /* Hover effects for slideshow elements */
+         .slideshow-hover-scale {
+           transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+         }
+
+         .slideshow-hover-scale:hover {
+           transform: scale(1.03);
+         }
+
+         /* Staggered animation delays */
+         .stagger-1 { animation-delay: 0.1s; }
+         .stagger-2 { animation-delay: 0.2s; }
+         .stagger-3 { animation-delay: 0.3s; }
+         .stagger-4 { animation-delay: 0.4s; }
+         .stagger-5 { animation-delay: 0.5s; }
+
+  /* Vertical Signature Styles - Handwritten Watermark Effect */
+  .vertical-signature {
+    font-family: 'Dancing Script', 'Great Vibes', 'Allura', 'Satisfy', 'Pacifico', cursive;
+    font-size: 2.8rem;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.9);
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    letter-spacing: 2px;
+    text-align: center;
+    text-shadow: 
+      1px 1px 2px rgba(0, 0, 0, 0.6),
+      0 0 8px rgba(255, 255, 255, 0.3),
+      0 0 16px rgba(255, 255, 255, 0.1);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    user-select: none;
+    white-space: nowrap;
+    opacity: 0.9;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+    position: relative;
+  }
+
+  /* Handwritten stroke effect */
+  .vertical-signature::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+    animation: signatureGlow 3s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  @keyframes signatureGlow {
+    0%, 100% {
+      opacity: 0;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  /* Responsive vertical signature */
+  @media (max-width: 768px) {
+    .vertical-signature {
+      font-size: 2.2rem;
+      letter-spacing: 1.5px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .vertical-signature {
+      font-size: 1.8rem;
+      letter-spacing: 1px;
+    }
+  }
+
+  /* Signature animation - subtle floating */
+  .signature-float {
+    animation: signatureFloat 8s ease-in-out infinite;
+  }
+
+  /* Signature animation states */
+  .signature-hidden {
+    opacity: 0;
+    transform: rotate(180deg) translateY(20px) scale(0.8);
+    transition: all 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .signature-visible {
+    opacity: 0.9;
+    transform: rotate(180deg) translateY(0px) scale(1);
+    transition: all 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+         /* Flip Card Animations */
+         .flip-card {
+           background-color: transparent;
+           width: 100%;
+           height: 320px;
+           perspective: 1000px;
+         }
+
+         .flip-card-inner {
+           position: relative;
+           width: 100%;
+           height: 100%;
+           text-align: center;
+           transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+           transform-style: preserve-3d;
+         }
+
+         .flip-card:hover .flip-card-inner {
+           transform: rotateY(180deg);
+         }
+
+         .flip-card-front, .flip-card-back {
+           position: absolute;
+           width: 100%;
+           height: 100%;
+           backface-visibility: hidden;
+           border-radius: 1rem;
+         }
+
+         .flip-card-back {
+           transform: rotateY(180deg);
+         }
+
+         /* Portfolio Card Animations */
+         .animate-fade-in-up {
+           animation: fadeInUp 0.8s ease-out forwards;
+           opacity: 0;
+         }
+
+         @keyframes fadeInUp {
+           to {
+             opacity: 1;
+           }
+         }
+
+         /* Wave Animation for Curtain Effect */
+         @keyframes wave {
+           0% {
+             background-position: 0% 50%;
+           }
+           50% {
+             background-position: 100% 50%;
+           }
+           100% {
+             background-position: 0% 50%;
+           }
+         }
+}

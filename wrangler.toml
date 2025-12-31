@@ -1,0 +1,18 @@
+name = "photography-portfolio"
+compatibility_date = "2024-10-15"
+pages_build_output_dir = "dist"
+
+# D1 Database binding (for local development)
+# Note: For Cloudflare Pages production, bindings are configured in the Pages dashboard
+[[d1_databases]]
+binding = "DB"
+database_name = "photo-db"
+database_id = "80f85c7f-ca7c-4f66-82d6-480f9e8d0c22"
+
+# R2 Bucket binding (for local development)
+# Note: Create the bucket via Cloudflare Dashboard → R2 → Create bucket (name: photo-media)
+# For production, bindings are configured in the Pages dashboard
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "photo-media"
+
