@@ -109,6 +109,14 @@ class ApiService {
 
     try {
       const response = await fetch(url, config);
+      
+      // Check content type before parsing JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        throw new Error(`Invalid response format. Expected JSON, got: ${contentType}. Response: ${text.substring(0, 100)}`);
+      }
+      
       const data = await response.json();
 
       if (!response.ok) {

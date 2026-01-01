@@ -259,11 +259,27 @@ app.put('/api/media/:id', requireAuth, async (c) => {
 });
 
 app.delete('/api/media/:id', requireAuth, async (c) => {
-  const id = c.req.param('id');
-  // best-effort delete from R2
-  await c.env.R2.delete(id).catch(() => null);
-  await c.env.DB.prepare('DELETE FROM media WHERE id = ?').bind(id).run();
-  return c.json({ success: true, message: 'Media deleted' });
+  try {
+    const id = c.req.param('id');
+    if (!id) return jsonError(c, 400, 'Media ID is required');
+    
+    // best-effort delete from R2
+    await c.env.R2.delete(id).catch((err) => {
+      console.error('R2 delete error (non-fatal):', err);
+    });
+    
+    // Delete from database
+    const result = await c.env.DB.prepare('DELETE FROM media WHERE id = ?').bind(id).run();
+    
+    if (result.success) {
+      return c.json({ success: true, message: 'Media deleted successfully' });
+    } else {
+      return jsonError(c, 500, 'Failed to delete media from database');
+    }
+  } catch (error) {
+    console.error('Delete error:', error);
+    return jsonError(c, 500, 'Failed to delete media');
+  }
 });
 
 // ---------- Text Content ----------
