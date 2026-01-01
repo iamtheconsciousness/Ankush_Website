@@ -14,6 +14,15 @@ type Env = {
 
 type JwtPayload = { sub: string; email: string; iat?: number; exp?: number };
 
+type PagesFunction<T = any> = (context: {
+  request: Request;
+  env: T;
+  waitUntil: (promise: Promise<any>) => void;
+  passThroughOnException: () => void;
+  next: () => Promise<Response>;
+  data: Record<string, unknown>;
+}) => Response | Promise<Response>;
+
 const ADMIN_EMAIL = 'admin@photography.com';
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50MB cap to stay Worker-friendly
 
