@@ -118,9 +118,15 @@ app.get('/api/health', (c) =>
 );
 
 // ---------- Media ----------
-// Proxy endpoint to serve R2 files
-app.get('/api/media/file/:key(*)', async (c) => {
-  const key = c.req.param('key');
+// Proxy endpoint to serve R2 files (must be before other /api/media routes)
+app.get('/api/media/file/*', async (c) => {
+  const url = new URL(c.req.url);
+  const pathParts = url.pathname.split('/api/media/file/');
+  if (pathParts.length < 2) return jsonError(c, 400, 'Invalid file path');
+  
+  const key = pathParts[1]; // Get everything after /api/media/file/
+  if (!key) return jsonError(c, 400, 'File key required');
+  
   try {
     const object = await c.env.R2.get(key);
     if (!object) return jsonError(c, 404, 'File not found');
@@ -128,6 +134,7 @@ app.get('/api/media/file/:key(*)', async (c) => {
     const headers = new Headers();
     object.writeHttpMetadata(headers);
     headers.set('Cache-Control', 'public, max-age=31536000');
+    headers.set('Access-Control-Allow-Origin', '*');
     
     return new Response(object.body, { headers });
   } catch (error) {
@@ -139,12 +146,16 @@ app.get('/api/media/file/:key(*)', async (c) => {
 app.get('/api/media', async (c) => {
   const rows = (await c.env.DB.prepare('SELECT * FROM media ORDER BY uploaded_at DESC').all()).results;
   // Update URLs to use proxy endpoint if R2_PUBLIC_URL is not set
-  const rowsWithUrls = rows.map((row: any) => ({
-    ...row,
-    file_url: row.file_url?.startsWith('http') 
-      ? row.file_url 
-      : `${new URL(c.req.url).origin}/api/media/file/${row.id || row.file_url?.replace(/^\//, '')}`
-  }));
+  const origin = new URL(c.req.url).origin;
+  const rowsWithUrls = rows.map((row: any) => {
+    let fileUrl = row.file_url;
+    // If URL doesn't start with http, use proxy endpoint
+    if (!fileUrl?.startsWith('http')) {
+      // Use the id (which is the R2 key) for the proxy
+      fileUrl = `${origin}/api/media/file/${row.id}`;
+    }
+    return { ...row, file_url: fileUrl };
+  });
   return c.json({ success: true, data: rowsWithUrls, message: 'Media fetched' });
 });
 
@@ -152,25 +163,32 @@ app.get('/api/media/category/:category', async (c) => {
   const category = c.req.param('category');
   const rows = (await c.env.DB.prepare('SELECT * FROM media WHERE category = ? ORDER BY uploaded_at DESC').bind(category).all()).results;
   // Update URLs to use proxy endpoint if R2_PUBLIC_URL is not set
-  const rowsWithUrls = rows.map((row: any) => ({
-    ...row,
-    file_url: row.file_url?.startsWith('http') 
-      ? row.file_url 
-      : `${new URL(c.req.url).origin}/api/media/file/${row.id || row.file_url?.replace(/^\//, '')}`
-  }));
+  const origin = new URL(c.req.url).origin;
+  const rowsWithUrls = rows.map((row: any) => {
+    let fileUrl = row.file_url;
+    if (!fileUrl?.startsWith('http')) {
+      fileUrl = `${origin}/api/media/file/${row.id}`;
+    }
+    return { ...row, file_url: fileUrl };
+  });
   return c.json({ success: true, data: rowsWithUrls, message: 'Media fetched' });
 });
 
 app.get('/api/media/:id', async (c) => {
   const id = c.req.param('id');
+  // Don't match if it's the file proxy endpoint
+  if (id === 'file') {
+    return c.next();
+  }
   const row = await c.env.DB.prepare('SELECT * FROM media WHERE id = ?').bind(id).first();
   if (!row) return jsonError(c, 404, 'Media not found');
   // Update URL to use proxy endpoint if R2_PUBLIC_URL is not set
+  const origin = new URL(c.req.url).origin;
   const rowWithUrl = {
     ...row,
     file_url: (row as any).file_url?.startsWith('http') 
       ? (row as any).file_url 
-      : `${new URL(c.req.url).origin}/api/media/file/${id}`
+      : `${origin}/api/media/file/${id}`
   };
   return c.json({ success: true, data: rowWithUrl, message: 'Media fetched' });
 });
@@ -216,11 +234,12 @@ app.post('/api/media/upload', requireAuth, async (c) => {
 
   const saved = await c.env.DB.prepare('SELECT * FROM media WHERE id = ?').bind(key).first();
   // Update URL in response to use proxy endpoint if R2_PUBLIC_URL is not set
+  const origin = new URL(c.req.url).origin;
   const savedWithUrl = saved ? {
     ...saved,
     file_url: (saved as any).file_url?.startsWith('http') 
       ? (saved as any).file_url 
-      : `${new URL(c.req.url).origin}/api/media/file/${key}`
+      : `${origin}/api/media/file/${key}`
   } : saved;
   return c.json({ success: true, data: savedWithUrl, message: 'Media uploaded' });
 });
