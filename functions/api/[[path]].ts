@@ -175,11 +175,13 @@ app.get('/api/media/category/:category', async (c) => {
 });
 
 app.get('/api/media/:id(*)', async (c) => {
-  const id = c.req.param('id');
+  let id = c.req.param('id');
   // Don't match if it's the file proxy endpoint
   if (id === 'file') {
     return c.next();
   }
+  // Decode the ID in case it was URL encoded
+  id = decodeURIComponent(id);
   const row = await c.env.DB.prepare('SELECT * FROM media WHERE id = ?').bind(id).first();
   if (!row) return jsonError(c, 404, 'Media not found');
   // Update URL to use proxy endpoint if R2_PUBLIC_URL is not set
@@ -188,7 +190,7 @@ app.get('/api/media/:id(*)', async (c) => {
     ...row,
     file_url: (row as any).file_url?.startsWith('http') 
       ? (row as any).file_url 
-      : `${origin}/api/media/file/${id}`
+      : `${origin}/api/media/file/${encodeURIComponent(id)}`
   };
   return c.json({ success: true, data: rowWithUrl, message: 'Media fetched' });
 });
@@ -245,7 +247,9 @@ app.post('/api/media/upload', requireAuth, async (c) => {
 });
 
 app.put('/api/media/:id(*)', requireAuth, async (c) => {
-  const id = c.req.param('id');
+  let id = c.req.param('id');
+  // Decode the ID in case it was URL encoded
+  id = decodeURIComponent(id);
   const body = await c.req.json().catch(() => ({}));
   const fields = ['title', 'caption', 'category'];
   const updates = fields.filter((f) => body[f] !== undefined);
@@ -260,8 +264,11 @@ app.put('/api/media/:id(*)', requireAuth, async (c) => {
 
 app.delete('/api/media/:id(*)', requireAuth, async (c) => {
   try {
-    const id = c.req.param('id');
+    let id = c.req.param('id');
     if (!id) return jsonError(c, 400, 'Media ID is required');
+    
+    // Decode the ID in case it was URL encoded
+    id = decodeURIComponent(id);
     
     // best-effort delete from R2
     await c.env.R2.delete(id).catch((err) => {

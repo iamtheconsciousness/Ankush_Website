@@ -206,7 +206,9 @@ class ApiService {
   }
 
   async getMediaById(id: string): Promise<ApiResponse<MediaItem>> {
-    return this.request<ApiResponse<MediaItem>>(`/media/${id}`);
+    // URL encode the ID to handle slashes (e.g., "media/uuid")
+    const encodedId = encodeURIComponent(id);
+    return this.request<ApiResponse<MediaItem>>(`/media/${encodedId}`);
   }
 
   async uploadMedia(
@@ -225,14 +227,18 @@ class ApiService {
   }
 
   async updateMedia(id: string, updates: Partial<MediaItem>): Promise<ApiResponse<MediaItem>> {
-    return this.request<ApiResponse<MediaItem>>(`/media/${id}`, {
+    // URL encode the ID to handle slashes (e.g., "media/uuid")
+    const encodedId = encodeURIComponent(id);
+    return this.request<ApiResponse<MediaItem>>(`/media/${encodedId}`, {
       method: 'PUT',
       body: JSON.stringify(updates),
     });
   }
 
   async deleteMedia(id: string): Promise<ApiResponse> {
-    return this.request<ApiResponse>(`/media/${id}`, {
+    // URL encode the ID to handle slashes (e.g., "media/uuid")
+    const encodedId = encodeURIComponent(id);
+    return this.request<ApiResponse>(`/media/${encodedId}`, {
       method: 'DELETE',
     });
   }
