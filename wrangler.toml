@@ -2,10 +2,6 @@ name = "ankush-website"
 compatibility_date = "2024-10-15"
 pages_build_output_dir = "dist"
 
-[build]
-command = "npm run build"
-cwd = "/"
-
 # D1 Database binding (for local development)
 # Note: For Cloudflare Pages production, bindings are configured in the Pages dashboard
 [[d1_databases]]
