@@ -332,9 +332,20 @@ app.delete('/api/admin/quotations/:id', requireAuth, async (c) => {
   return c.json({ success: true, message: 'Quotation deleted' });
 });
 
-// ---------- Fallback for API routes only ----------
-// Only handle /api/* routes, let everything else fall through to static files
-app.all('/api/*', (c) => jsonError(c, 404, 'API route not found'));
-
-export default app;
+// ---------- Export for Pages Functions ----------
+// Wrap the app to only handle /api/* routes
+export default {
+  async fetch(request: Request, env: Env['Bindings'], ctx: ExecutionContext): Promise<Response> {
+    const url = new URL(request.url);
+    
+    // Only handle /api/* routes
+    if (url.pathname.startsWith('/api/')) {
+      return app.fetch(request, env, ctx);
+    }
+    
+    // For non-API routes, return 404 so Pages serves static files
+    // Pages will automatically serve static files if Function returns 404
+    return new Response(null, { status: 404 });
+  }
+};
 
