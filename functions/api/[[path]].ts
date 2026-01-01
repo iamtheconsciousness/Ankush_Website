@@ -118,22 +118,61 @@ app.get('/api/health', (c) =>
 );
 
 // ---------- Media ----------
+// Proxy endpoint to serve R2 files
+app.get('/api/media/file/:key(*)', async (c) => {
+  const key = c.req.param('key');
+  try {
+    const object = await c.env.R2.get(key);
+    if (!object) return jsonError(c, 404, 'File not found');
+    
+    const headers = new Headers();
+    object.writeHttpMetadata(headers);
+    headers.set('Cache-Control', 'public, max-age=31536000');
+    
+    return new Response(object.body, { headers });
+  } catch (error) {
+    console.error('Error serving file:', error);
+    return jsonError(c, 500, 'Failed to serve file');
+  }
+});
+
 app.get('/api/media', async (c) => {
   const rows = (await c.env.DB.prepare('SELECT * FROM media ORDER BY uploaded_at DESC').all()).results;
-  return c.json({ success: true, data: rows, message: 'Media fetched' });
+  // Update URLs to use proxy endpoint if R2_PUBLIC_URL is not set
+  const rowsWithUrls = rows.map((row: any) => ({
+    ...row,
+    file_url: row.file_url?.startsWith('http') 
+      ? row.file_url 
+      : `${new URL(c.req.url).origin}/api/media/file/${row.id || row.file_url?.replace(/^\//, '')}`
+  }));
+  return c.json({ success: true, data: rowsWithUrls, message: 'Media fetched' });
 });
 
 app.get('/api/media/category/:category', async (c) => {
   const category = c.req.param('category');
   const rows = (await c.env.DB.prepare('SELECT * FROM media WHERE category = ? ORDER BY uploaded_at DESC').bind(category).all()).results;
-  return c.json({ success: true, data: rows, message: 'Media fetched' });
+  // Update URLs to use proxy endpoint if R2_PUBLIC_URL is not set
+  const rowsWithUrls = rows.map((row: any) => ({
+    ...row,
+    file_url: row.file_url?.startsWith('http') 
+      ? row.file_url 
+      : `${new URL(c.req.url).origin}/api/media/file/${row.id || row.file_url?.replace(/^\//, '')}`
+  }));
+  return c.json({ success: true, data: rowsWithUrls, message: 'Media fetched' });
 });
 
 app.get('/api/media/:id', async (c) => {
   const id = c.req.param('id');
   const row = await c.env.DB.prepare('SELECT * FROM media WHERE id = ?').bind(id).first();
   if (!row) return jsonError(c, 404, 'Media not found');
-  return c.json({ success: true, data: row, message: 'Media fetched' });
+  // Update URL to use proxy endpoint if R2_PUBLIC_URL is not set
+  const rowWithUrl = {
+    ...row,
+    file_url: (row as any).file_url?.startsWith('http') 
+      ? (row as any).file_url 
+      : `${new URL(c.req.url).origin}/api/media/file/${id}`
+  };
+  return c.json({ success: true, data: rowWithUrl, message: 'Media fetched' });
 });
 
 app.post('/api/media/upload', requireAuth, async (c) => {
@@ -176,7 +215,14 @@ app.post('/api/media/upload', requireAuth, async (c) => {
     .run();
 
   const saved = await c.env.DB.prepare('SELECT * FROM media WHERE id = ?').bind(key).first();
-  return c.json({ success: true, data: saved, message: 'Media uploaded' });
+  // Update URL in response to use proxy endpoint if R2_PUBLIC_URL is not set
+  const savedWithUrl = saved ? {
+    ...saved,
+    file_url: (saved as any).file_url?.startsWith('http') 
+      ? (saved as any).file_url 
+      : `${new URL(c.req.url).origin}/api/media/file/${key}`
+  } : saved;
+  return c.json({ success: true, data: savedWithUrl, message: 'Media uploaded' });
 });
 
 app.put('/api/media/:id', requireAuth, async (c) => {
