@@ -332,8 +332,9 @@ app.delete('/api/admin/quotations/:id', requireAuth, async (c) => {
   return c.json({ success: true, message: 'Quotation deleted' });
 });
 
-// ---------- Fallback ----------
-app.all('*', (c) => jsonError(c, 404, 'Route not found'));
+// ---------- Fallback for API routes only ----------
+// Only handle /api/* routes, let everything else fall through to static files
+app.all('/api/*', (c) => jsonError(c, 404, 'API route not found'));
 
 export default app;
 
