@@ -333,19 +333,6 @@ app.delete('/api/admin/quotations/:id', requireAuth, async (c) => {
 });
 
 // ---------- Export for Pages Functions ----------
-// Wrap the app to only handle /api/* routes
-export default {
-  async fetch(request: Request, env: Env['Bindings'], ctx: ExecutionContext): Promise<Response> {
-    const url = new URL(request.url);
-    
-    // Only handle /api/* routes
-    if (url.pathname.startsWith('/api/')) {
-      return app.fetch(request, env, ctx);
-    }
-    
-    // For non-API routes, return 404 so Pages serves static files
-    // Pages will automatically serve static files if Function returns 404
-    return new Response(null, { status: 404 });
-  }
-};
+// This file is in functions/api/[[path]].ts, so it only handles /api/* routes
+export default app;
 
