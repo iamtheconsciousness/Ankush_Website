@@ -361,9 +361,56 @@ app.put('/api/text-content/multiple', requireAuth, async (c) => {
 });
 
 // ---------- Backgrounds ----------
+// Proxy endpoint to serve background images from R2 (must be before other /api/backgrounds routes)
+app.get('/api/backgrounds/file/*', async (c) => {
+  const url = new URL(c.req.url);
+  const pathParts = url.pathname.split('/api/backgrounds/file/');
+  if (pathParts.length < 2) return jsonError(c, 400, 'Invalid file path');
+  
+  const key = pathParts[1]; // Get everything after /api/backgrounds/file/
+  if (!key) return jsonError(c, 400, 'File key required');
+  
+  try {
+    const object = await c.env.R2.get(key);
+    if (!object) return jsonError(c, 404, 'File not found');
+    
+    const headers = new Headers();
+    object.writeHttpMetadata(headers);
+    headers.set('Cache-Control', 'public, max-age=31536000');
+    headers.set('Access-Control-Allow-Origin', '*');
+    
+    return new Response(object.body, { headers });
+  } catch (error) {
+    console.error('Error serving background file:', error);
+    return jsonError(c, 500, 'Failed to serve file');
+  }
+});
+
 app.get('/api/backgrounds', async (c) => {
   const rows = (await c.env.DB.prepare('SELECT * FROM background_images ORDER BY section_type, section_name').all()).results;
-  return c.json({ success: true, data: rows, message: 'Backgrounds fetched' });
+  // Update URLs to use proxy endpoint if R2_PUBLIC_URL is not set
+  const origin = new URL(c.req.url).origin;
+  const rowsWithUrls = rows.map((row: any) => {
+    let imageUrl = row.background_image_url;
+    // If URL doesn't start with http, use proxy endpoint
+    if (!imageUrl?.startsWith('http')) {
+      // Extract the key from the URL (e.g., "/backgrounds/uuid" -> "backgrounds/uuid")
+      const key = imageUrl.replace(/^\//, '');
+      imageUrl = `${origin}/api/backgrounds/file/${key}`;
+    }
+    return { 
+      ...row, 
+      backgroundImageUrl: imageUrl,
+      sectionType: row.section_type,
+      sectionName: row.section_name,
+      fileName: row.file_name,
+      fileSize: row.file_size,
+      mimeType: row.mime_type,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    };
+  });
+  return c.json({ success: true, data: rowsWithUrls, message: 'Backgrounds fetched' });
 });
 
 app.get('/api/backgrounds/:sectionType', async (c) => {
@@ -371,7 +418,27 @@ app.get('/api/backgrounds/:sectionType', async (c) => {
   const rows = (
     await c.env.DB.prepare('SELECT * FROM background_images WHERE section_type = ? ORDER BY section_name').bind(sectionType).all()
   ).results;
-  return c.json({ success: true, data: rows, message: 'Backgrounds fetched' });
+  // Update URLs to use proxy endpoint if R2_PUBLIC_URL is not set
+  const origin = new URL(c.req.url).origin;
+  const rowsWithUrls = rows.map((row: any) => {
+    let imageUrl = row.background_image_url;
+    if (!imageUrl?.startsWith('http')) {
+      const key = imageUrl.replace(/^\//, '');
+      imageUrl = `${origin}/api/backgrounds/file/${key}`;
+    }
+    return { 
+      ...row, 
+      backgroundImageUrl: imageUrl,
+      sectionType: row.section_type,
+      sectionName: row.section_name,
+      fileName: row.file_name,
+      fileSize: row.file_size,
+      mimeType: row.mime_type,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    };
+  });
+  return c.json({ success: true, data: rowsWithUrls, message: 'Backgrounds fetched' });
 });
 
 app.post('/api/admin/backgrounds', requireAuth, async (c) => {
