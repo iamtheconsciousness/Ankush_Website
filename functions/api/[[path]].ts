@@ -174,10 +174,17 @@ app.get('/api/media/category/:category', async (c) => {
   return c.json({ success: true, data: rowsWithUrls, message: 'Media fetched' });
 });
 
-app.get('/api/media/:id(*)', async (c) => {
-  let id = c.req.param('id');
+app.get('/api/media/*', async (c) => {
+  // Extract ID from pathname (everything after /api/media/)
+  const url = new URL(c.req.url);
+  const pathMatch = url.pathname.match(/^\/api\/media\/(.+)$/);
+  if (!pathMatch || !pathMatch[1]) {
+    return c.next();
+  }
+  
+  let id = pathMatch[1];
   // Don't match if it's the file proxy endpoint
-  if (id === 'file') {
+  if (id.startsWith('file/')) {
     return c.next();
   }
   // Decode the ID in case it was URL encoded
@@ -246,8 +253,19 @@ app.post('/api/media/upload', requireAuth, async (c) => {
   return c.json({ success: true, data: savedWithUrl, message: 'Media uploaded' });
 });
 
-app.put('/api/media/:id(*)', requireAuth, async (c) => {
-  let id = c.req.param('id');
+app.put('/api/media/*', requireAuth, async (c) => {
+  // Extract ID from pathname (everything after /api/media/)
+  const url = new URL(c.req.url);
+  const pathMatch = url.pathname.match(/^\/api\/media\/(.+)$/);
+  if (!pathMatch || !pathMatch[1]) {
+    return jsonError(c, 400, 'Media ID is required');
+  }
+  
+  let id = pathMatch[1];
+  // Don't process if it's the file proxy endpoint
+  if (id.startsWith('file/')) {
+    return c.next();
+  }
   // Decode the ID in case it was URL encoded
   id = decodeURIComponent(id);
   const body = await c.req.json().catch(() => ({}));
@@ -262,13 +280,23 @@ app.put('/api/media/:id(*)', requireAuth, async (c) => {
   return c.json({ success: true, data: saved, message: 'Media updated' });
 });
 
-app.delete('/api/media/:id(*)', requireAuth, async (c) => {
+app.delete('/api/media/*', requireAuth, async (c) => {
   try {
-    let id = c.req.param('id');
-    if (!id) return jsonError(c, 400, 'Media ID is required');
+    // Extract ID from pathname (everything after /api/media/)
+    const url = new URL(c.req.url);
+    const pathMatch = url.pathname.match(/^\/api\/media\/(.+)$/);
+    if (!pathMatch || !pathMatch[1]) {
+      return jsonError(c, 400, 'Media ID is required');
+    }
     
+    let id = pathMatch[1];
     // Decode the ID in case it was URL encoded
     id = decodeURIComponent(id);
+    
+    // Don't process if it's the file proxy endpoint
+    if (id.startsWith('file/')) {
+      return c.next();
+    }
     
     // best-effort delete from R2
     await c.env.R2.delete(id).catch((err) => {
