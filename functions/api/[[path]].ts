@@ -334,5 +334,7 @@ app.delete('/api/admin/quotations/:id', requireAuth, async (c) => {
 
 // ---------- Export for Pages Functions ----------
 // This file is in functions/api/[[path]].ts, so it only handles /api/* routes
-export default app;
+export const onRequest: PagesFunction<Env['Bindings']> = async (context) => {
+  return app.fetch(context.request, context.env, context);
+};
 
