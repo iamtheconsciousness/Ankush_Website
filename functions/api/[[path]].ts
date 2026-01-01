@@ -79,6 +79,17 @@ app.post('/api/auth/login', async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const { email, password } = body as { email?: string; password?: string };
   if (!email || !password) return jsonError(c, 400, 'Email and password are required');
+  
+  // Debug logging (remove after fixing)
+  console.log('Login attempt:', {
+    email,
+    emailMatch: email === ADMIN_EMAIL,
+    passwordLength: password?.length,
+    envPasswordLength: c.env.ADMIN_PASSWORD?.length,
+    passwordMatch: password === c.env.ADMIN_PASSWORD,
+    hasEnvPassword: !!c.env.ADMIN_PASSWORD
+  });
+  
   if (email !== ADMIN_EMAIL || password !== c.env.ADMIN_PASSWORD) return jsonError(c, 401, 'Invalid credentials');
 
   const token = await sign({ sub: '1', email }, c.env.JWT_SECRET, 'HS256');
