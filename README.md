@@ -1,5 +1,4 @@
-<<<<<<< HEAD
-# 📸 Photography Portfolio Website
+# 📸 Ankush's Photography Portfolio Website
 
 A modern, fully-featured photography portfolio website with a complete backend system for content management.
 
@@ -253,7 +252,3 @@ For support and questions:
 ---
 
 **Ready to showcase your photography? Get started with the setup guide!** 🚀
-=======
-# Ankush_Website
-This repo hold complete website for Ankush's portfolio
->>>>>>> e8fc17667e9e24d46ef5294656de2c506a075bf0
