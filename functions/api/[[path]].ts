@@ -174,7 +174,7 @@ app.get('/api/media/category/:category', async (c) => {
   return c.json({ success: true, data: rowsWithUrls, message: 'Media fetched' });
 });
 
-app.get('/api/media/:id', async (c) => {
+app.get('/api/media/:id(*)', async (c) => {
   const id = c.req.param('id');
   // Don't match if it's the file proxy endpoint
   if (id === 'file') {
@@ -244,7 +244,7 @@ app.post('/api/media/upload', requireAuth, async (c) => {
   return c.json({ success: true, data: savedWithUrl, message: 'Media uploaded' });
 });
 
-app.put('/api/media/:id', requireAuth, async (c) => {
+app.put('/api/media/:id(*)', requireAuth, async (c) => {
   const id = c.req.param('id');
   const body = await c.req.json().catch(() => ({}));
   const fields = ['title', 'caption', 'category'];
@@ -258,7 +258,7 @@ app.put('/api/media/:id', requireAuth, async (c) => {
   return c.json({ success: true, data: saved, message: 'Media updated' });
 });
 
-app.delete('/api/media/:id', requireAuth, async (c) => {
+app.delete('/api/media/:id(*)', requireAuth, async (c) => {
   try {
     const id = c.req.param('id');
     if (!id) return jsonError(c, 400, 'Media ID is required');
