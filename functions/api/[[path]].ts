@@ -562,22 +562,43 @@ app.post('/api/reviews', async (c) => {
   }
 
   // Insert review
+  const now = nowIso();
+  const trimmedName = client_name.trim();
+  const trimmedEmail = email.trim().toLowerCase();
+  const trimmedComment = comment.trim();
+  
   const result = await c.env.DB.prepare(
     `INSERT INTO reviews (client_name, email, rating, comment, status, created_at, updated_at)
-     VALUES (?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`
+     VALUES (?, ?, ?, ?, 'pending', ?, ?)`
   )
-    .bind(client_name.trim(), email.trim().toLowerCase(), rating, comment.trim())
+    .bind(trimmedName, trimmedEmail, rating, trimmedComment, now, now)
     .run();
 
   if (!result.success) {
     return jsonError(c, 500, 'Failed to submit review');
   }
 
-  // Get the ID of the newly inserted row
-  const lastIdResult = await c.env.DB.prepare('SELECT last_insert_rowid() as id').first<{ id: number }>();
-  const reviewId = lastIdResult?.id || (result.meta as any)?.last_row_id;
+  // Get the ID of the newly inserted row using D1's meta property
+  const reviewId = (result.meta as any)?.last_row_id;
   
   if (!reviewId) {
+    // Fallback: query by email and most recent timestamp
+    const fallbackReview = await c.env.DB.prepare(
+      `SELECT * FROM reviews 
+       WHERE email = ? AND client_name = ? AND rating = ? 
+       ORDER BY created_at DESC LIMIT 1`
+    )
+      .bind(trimmedEmail, trimmedName, rating)
+      .first();
+      
+    if (fallbackReview) {
+      return c.json({
+        success: true,
+        message: 'Review submitted successfully. It will be published after approval.',
+        data: fallbackReview
+      });
+    }
+    
     return jsonError(c, 500, 'Failed to retrieve review ID');
   }
 
