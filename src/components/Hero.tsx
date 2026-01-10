@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { getPhotographerInfo } from '../data/portfolioData';
 import SignatureTitle from './SignatureTitle';
-import { Instagram, Linkedin, X, ExternalLink } from 'lucide-react';
+import { Instagram, Linkedin, X, ExternalLink, Star, MessageSquare } from 'lucide-react';
 import { useBackgroundImages } from '../hooks/useBackgroundImages';
-import { apiService } from '../lib/apiService';
+import { apiService, Review } from '../lib/apiService';
+import ReviewForm from './ReviewForm';
 
 interface HeroProps {
   onNavigate: (page: string) => void;
@@ -24,6 +25,8 @@ export default function Hero({ onNavigate }: HeroProps) {
       linkedin: 'https://linkedin.com/in/ankushpainuly'
     }
   });
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewFormOpen, setReviewFormOpen] = useState(false);
   const [quotationModal, setQuotationModal] = useState<{ isOpen: boolean; service: string }>({
     isOpen: false,
     service: ''
@@ -49,6 +52,42 @@ export default function Hero({ onNavigate }: HeroProps) {
     };
     
     fetchPhotographerInfo();
+  }, []);
+
+  // Fetch approved reviews from backend
+  useEffect(() => {
+    const fetchReviews = async () => {
+      try {
+        const response = await apiService.getApprovedReviews();
+        if (response.success && response.data) {
+          setReviews(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching reviews:', error);
+      }
+    };
+    
+    fetchReviews();
+  }, []);
+
+  // Listen for review updates from admin panel
+  useEffect(() => {
+    const handleReviewsUpdate = async () => {
+      try {
+        const response = await apiService.getApprovedReviews();
+        if (response.success && response.data) {
+          setReviews(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching reviews:', error);
+      }
+    };
+    
+    window.addEventListener('reviewsUpdated', handleReviewsUpdate);
+    
+    return () => {
+      window.removeEventListener('reviewsUpdated', handleReviewsUpdate);
+    };
   }, []);
 
   // Listen for text content updates from admin panel
@@ -239,8 +278,8 @@ export default function Hero({ onNavigate }: HeroProps) {
                 <div className="text-gray-600">Happy Clients</div>
                 </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-gray-900 mb-2">200+</div>
-                <div className="text-gray-600">Weddings Shot</div>
+                <div className="text-3xl font-bold text-gray-900 mb-2">10k+</div>
+                <div className="text-gray-600">Shoots</div>
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold text-gray-900 mb-2">15+</div>
@@ -263,14 +302,14 @@ export default function Hero({ onNavigate }: HeroProps) {
             {/* Weddings */}
             <div 
               className="group bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out cursor-pointer hover:scale-105 transform lg:-translate-y-4"
-              onClick={() => window.open('/portfolio?category=Weddings', '_blank')}
+              onClick={() => window.open('/portfolio?category=Wedding', '_blank')}
               role="button"
               tabIndex={0}
-              aria-label="View Weddings portfolio in new tab"
+              aria-label="View Wedding portfolio in new tab"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  window.open('/portfolio?category=Weddings', '_blank');
+                  window.open('/portfolio?category=Wedding', '_blank');
                 }
               }}
             >
@@ -415,14 +454,14 @@ export default function Hero({ onNavigate }: HeroProps) {
             {/* Portrait Photography */}
             <div 
               className="group bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out cursor-pointer hover:scale-105 transform lg:-translate-y-4 lg:mt-16"
-              onClick={() => window.open('/portfolio?category=Portraits', '_blank')}
+              onClick={() => window.open('/portfolio?category=Portrait', '_blank')}
               role="button"
               tabIndex={0}
               aria-label="View Portrait portfolio in new tab"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  window.open('/portfolio?category=Portraits', '_blank');
+                  window.open('/portfolio?category=Portrait', '_blank');
                 }
               }}
             >
@@ -491,14 +530,14 @@ export default function Hero({ onNavigate }: HeroProps) {
             {/* Event Photography */}
             <div 
               className="group bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out cursor-pointer hover:scale-105 transform lg:translate-y-4 lg:ml-8 lg:mt-16"
-              onClick={() => window.open('/portfolio?category=Events', '_blank')}
+              onClick={() => window.open('/portfolio?category=Event', '_blank')}
               role="button"
               tabIndex={0}
-              aria-label="View Events portfolio in new tab"
+              aria-label="View Event portfolio in new tab"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  window.open('/portfolio?category=Events', '_blank');
+                  window.open('/portfolio?category=Event', '_blank');
                 }
               }}
             >
@@ -573,9 +612,161 @@ export default function Hero({ onNavigate }: HeroProps) {
                 <div className="text-orange-500 font-medium hover:text-orange-600 transition-colors">Read More...</div>
                         </div>
                   </div>
+
+            {/* Client Edits */}
+            <div 
+              className="group bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out cursor-pointer hover:scale-105 transform lg:-translate-y-4"
+              onClick={() => window.open('/portfolio?category=Client Edits', '_blank')}
+              role="button"
+              tabIndex={0}
+              aria-label="View Client Edits portfolio in new tab"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  window.open('/portfolio?category=Client Edits', '_blank');
+                }
+              }}
+            >
+              <div className="relative h-96 overflow-hidden p-4">
+                <img 
+                  src={getBackgroundImage('portfolio', 'Client Edits', '/client-edits-photo.jpg')}
+                  alt="Client Edits Photography" 
+                  className="w-full h-full object-cover rounded-lg border-4 border-white shadow-lg transition-all duration-300 group-hover:scale-110"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.nextElementSibling.style.display = 'flex';
+                  }}
+                />
+                <div className="w-full h-full bg-gradient-to-br from-cyan-100 to-blue-100 flex items-center justify-center hidden rounded-lg border-4 border-white shadow-lg">
+                  <span className="text-gray-600 text-lg font-medium">Client Edits</span>
                 </div>
+              </div>
+              <div className="p-6 text-center">
+                <h3 className="text-2xl font-bold text-gray-800 mb-3 flex items-center justify-center gap-2">
+                  Client Edits
+                  <ExternalLink className="w-4 h-4 text-gray-400" />
+                </h3>
+                <p className="text-gray-600 leading-relaxed mb-4">Expertly edited photographs showcasing refined post-processing and artistic enhancements.</p>
+                <div className="text-orange-500 font-medium hover:text-orange-600 transition-colors">Read More...</div>
+              </div>
+            </div>
+
+            {/* Reels */}
+            <div 
+              className="group bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out cursor-pointer hover:scale-105 transform lg:translate-y-4"
+              onClick={() => window.open('/portfolio?category=Reels', '_blank')}
+              role="button"
+              tabIndex={0}
+              aria-label="View Reels portfolio in new tab"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  window.open('/portfolio?category=Reels', '_blank');
+                }
+              }}
+            >
+              <div className="relative h-96 overflow-hidden p-4">
+                <img 
+                  src={getBackgroundImage('portfolio', 'Reels', '/reels-photo.jpg')}
+                  alt="Reels Video Content" 
+                  className="w-full h-full object-cover rounded-lg border-4 border-white shadow-lg transition-all duration-300 group-hover:scale-110"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.nextElementSibling.style.display = 'flex';
+                  }}
+                />
+                <div className="w-full h-full bg-gradient-to-br from-violet-100 to-purple-100 flex items-center justify-center hidden rounded-lg border-4 border-white shadow-lg">
+                  <span className="text-gray-600 text-lg font-medium">Video Reels</span>
+                </div>
+              </div>
+              <div className="p-6 text-center">
+                <h3 className="text-2xl font-bold text-gray-800 mb-3 flex items-center justify-center gap-2">
+                  Reels
+                  <ExternalLink className="w-4 h-4 text-gray-400" />
+                </h3>
+                <p className="text-gray-600 leading-relaxed mb-4">Dynamic video reels capturing moments in motion with cinematic storytelling.</p>
+                <div className="text-orange-500 font-medium hover:text-orange-600 transition-colors">Read More...</div>
+              </div>
+            </div>
+
+            {/* Celebrity Shoots */}
+            <div 
+              className="group bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out cursor-pointer hover:scale-105 transform lg:translate-y-4 lg:ml-8"
+              onClick={() => window.open('/portfolio?category=Celebrity Shoots', '_blank')}
+              role="button"
+              tabIndex={0}
+              aria-label="View Celebrity Shoots portfolio in new tab"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  window.open('/portfolio?category=Celebrity Shoots', '_blank');
+                }
+              }}
+            >
+              <div className="relative h-96 overflow-hidden p-4">
+                <img 
+                  src={getBackgroundImage('portfolio', 'Celebrity Shoots', '/celebrity-photo.jpg')}
+                  alt="Celebrity Photography" 
+                  className="w-full h-full object-cover rounded-lg border-4 border-white shadow-lg transition-all duration-300 group-hover:scale-110"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.nextElementSibling.style.display = 'flex';
+                  }}
+                />
+                <div className="w-full h-full bg-gradient-to-br from-amber-100 to-yellow-100 flex items-center justify-center hidden rounded-lg border-4 border-white shadow-lg">
+                  <span className="text-gray-600 text-lg font-medium">Celebrity Photography</span>
+                </div>
+              </div>
+              <div className="p-6 text-center">
+                <h3 className="text-2xl font-bold text-gray-800 mb-3 flex items-center justify-center gap-2">
+                  Celebrity Shoots
+                  <ExternalLink className="w-4 h-4 text-gray-400" />
+                </h3>
+                <p className="text-gray-600 leading-relaxed mb-4">Exclusive celebrity photography sessions with high-end production value and style.</p>
+                <div className="text-orange-500 font-medium hover:text-orange-600 transition-colors">Read More...</div>
+              </div>
+            </div>
+
+            {/* Motion Graphics */}
+            <div 
+              className="group bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out cursor-pointer hover:scale-105 transform lg:-translate-y-4"
+              onClick={() => window.open('/portfolio?category=Motion Graphics', '_blank')}
+              role="button"
+              tabIndex={0}
+              aria-label="View Motion Graphics portfolio in new tab"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  window.open('/portfolio?category=Motion Graphics', '_blank');
+                }
+              }}
+            >
+              <div className="relative h-96 overflow-hidden p-4">
+                <img 
+                  src={getBackgroundImage('portfolio', 'Motion Graphics', '/motion-graphics-photo.jpg')}
+                  alt="Motion Graphics" 
+                  className="w-full h-full object-cover rounded-lg border-4 border-white shadow-lg transition-all duration-300 group-hover:scale-110"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.nextElementSibling.style.display = 'flex';
+                  }}
+                />
+                <div className="w-full h-full bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center hidden rounded-lg border-4 border-white shadow-lg">
+                  <span className="text-gray-600 text-lg font-medium">Motion Graphics</span>
+                </div>
+              </div>
+              <div className="p-6 text-center">
+                <h3 className="text-2xl font-bold text-gray-800 mb-3 flex items-center justify-center gap-2">
+                  Motion Graphics
+                  <ExternalLink className="w-4 h-4 text-gray-400" />
+                </h3>
+                <p className="text-gray-600 leading-relaxed mb-4">Creative motion graphics and animated visuals that bring your brand and stories to life.</p>
+                <div className="text-orange-500 font-medium hover:text-orange-600 transition-colors">Read More...</div>
+              </div>
             </div>
           </div>
+        </div>
+      </div>
 
         {/* Services Section - Premium Photography Studio Style */}
         <div id="services-section" className="py-24 bg-gray-50 relative overflow-hidden">
@@ -986,30 +1177,69 @@ export default function Hero({ onNavigate }: HeroProps) {
         <div className="max-w-7xl mx-auto px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">Client Reviews</h2>
-            <p className="text-gray-600">What our clients say about our work</p>
+            <p className="text-gray-600 mb-6">What our clients say about our work</p>
+            <button
+              onClick={() => setReviewFormOpen(true)}
+              className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-400 to-pink-400 text-white rounded-lg hover:from-purple-500 hover:to-pink-500 transition-all duration-300 font-medium shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              <MessageSquare className="w-5 h-5" />
+              <span>Share Your Experience</span>
+            </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white p-6 rounded-lg shadow-lg">
-              <div className="text-yellow-400 mb-4">★★★★★</div>
-              <p className="text-gray-700 mb-4">"Ankush captured our wedding beautifully. Every moment was perfect!"</p>
-              <div className="text-gray-900 font-semibold">- Sarah & John</div>
-                </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-lg">
-              <div className="text-yellow-400 mb-4">★★★★★</div>
-              <p className="text-gray-700 mb-4">"Professional, creative, and amazing results. Highly recommended!"</p>
-              <div className="text-gray-900 font-semibold">- Mike Johnson</div>
-                </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-lg">
-              <div className="text-yellow-400 mb-4">★★★★★</div>
-              <p className="text-gray-700 mb-4">"The best photographer we've worked with. Truly talented!"</p>
-              <div className="text-gray-900 font-semibold">- Emily Davis</div>
-                </div>
+          {reviews.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-600 text-lg mb-4">No reviews yet. Be the first to share your experience!</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {reviews.slice(0, 6).map((review) => (
+                <div key={review.id} className="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
+                  <div className="flex items-center mb-4">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        className={`w-5 h-5 ${
+                          star <= review.rating
+                            ? 'text-yellow-400 fill-current'
+                            : 'text-gray-300'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-gray-700 mb-4 italic">"{review.comment}"</p>
+                  <div className="text-gray-900 font-semibold">- {review.client_name}</div>
+                  <div className="text-gray-500 text-sm mt-1">
+                    {new Date(review.createdAt).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
                   </div>
                 </div>
-          </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Review Form Modal */}
+      {reviewFormOpen && (
+        <ReviewForm
+          onClose={() => setReviewFormOpen(false)}
+          onSuccess={async () => {
+            // Refresh reviews after successful submission
+            try {
+              const response = await apiService.getApprovedReviews();
+              if (response.success && response.data) {
+                setReviews(response.data);
+              }
+            } catch (error) {
+              console.error('Error refreshing reviews:', error);
+            }
+          }}
+        />
+      )}
 
       {/* Let's Connect Section - Matching Website Theme */}
       <div id="contact-section" className="py-24 bg-gray-50">
@@ -1171,8 +1401,8 @@ export default function Hero({ onNavigate }: HeroProps) {
                   <div className="text-gray-600 font-medium">Years Experience</div>
                 </div>
                 <div className="text-center p-6 bg-gray-50 rounded-lg">
-                  <div className="text-4xl font-bold text-gray-800 mb-2">200+</div>
-                  <div className="text-gray-600 font-medium">Weddings Shot</div>
+                  <div className="text-4xl font-bold text-gray-800 mb-2">10k+</div>
+                  <div className="text-gray-600 font-medium">Shoots</div>
                 </div>
                 <div className="text-center p-6 bg-gray-50 rounded-lg">
                   <div className="text-4xl font-bold text-gray-800 mb-2">24h</div>

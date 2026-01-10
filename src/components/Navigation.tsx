@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Menu, X, Instagram, Linkedin } from 'lucide-react';
+import { getPhotographerInfo } from '../data/portfolioData';
 
 interface NavigationProps {
   onNavigate: (page: string) => void;
@@ -8,6 +9,52 @@ interface NavigationProps {
 
 export default function Navigation({ onNavigate, currentPage }: NavigationProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [socialLinks, setSocialLinks] = useState({
+    instagram: 'https://instagram.com/ankushpainuly',
+    linkedin: 'https://linkedin.com/in/ankushpainuly'
+  });
+
+  // Fetch social links from backend
+  useEffect(() => {
+    const fetchSocialLinks = async () => {
+      try {
+        const info = await getPhotographerInfo();
+        setSocialLinks({
+          instagram: info.social.instagram,
+          linkedin: info.social.linkedin
+        });
+      } catch (error) {
+        console.error('Error fetching social links:', error);
+      }
+    };
+    
+    fetchSocialLinks();
+  }, []);
+
+  // Listen for text content updates from admin panel
+  useEffect(() => {
+    const handleTextContentUpdate = () => {
+      const fetchSocialLinks = async () => {
+        try {
+          const info = await getPhotographerInfo();
+          setSocialLinks({
+            instagram: info.social.instagram,
+            linkedin: info.social.linkedin
+          });
+        } catch (error) {
+          console.error('Error fetching social links:', error);
+        }
+      };
+      
+      fetchSocialLinks();
+    };
+    
+    window.addEventListener('textContentUpdated', handleTextContentUpdate);
+    
+    return () => {
+      window.removeEventListener('textContentUpdated', handleTextContentUpdate);
+    };
+  }, []);
 
   const navItems = [
     { id: 'home', label: 'Home', scrollTo: 'hero' },
@@ -56,7 +103,7 @@ export default function Navigation({ onNavigate, currentPage }: NavigationProps)
           <div className="hidden lg:flex items-center space-x-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             {/* Social Media Links */}
             <a
-              href="https://instagram.com/ankushpainuly"
+              href={socialLinks.instagram}
               target="_blank"
               rel="noopener noreferrer"
               className="text-white hover:text-gray-300 transition-colors"
@@ -64,7 +111,7 @@ export default function Navigation({ onNavigate, currentPage }: NavigationProps)
               <Instagram className="w-5 h-5" />
             </a>
             <a
-              href="https://linkedin.com/in/ankushpainuly"
+              href={socialLinks.linkedin}
               target="_blank"
               rel="noopener noreferrer"
               className="text-white hover:text-gray-300 transition-colors"
@@ -107,7 +154,7 @@ export default function Navigation({ onNavigate, currentPage }: NavigationProps)
             {/* Social Media Links for Mobile */}
             <div className="flex items-center space-x-4 pt-4 border-t border-gray-700">
               <a
-                href="https://instagram.com/ankushpainuly"
+                href={socialLinks.instagram}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-400 hover:text-white transition-colors"
@@ -115,7 +162,7 @@ export default function Navigation({ onNavigate, currentPage }: NavigationProps)
                 <Instagram className="w-5 h-5" />
               </a>
               <a
-                href="https://linkedin.com/in/ankushpainuly"
+                href={socialLinks.linkedin}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-400 hover:text-white transition-colors"

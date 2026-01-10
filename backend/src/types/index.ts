@@ -58,6 +58,24 @@ export interface Quotation {
   updatedAt: string;
 }
 
+export interface ReviewRequest {
+  client_name: string;
+  email: string;
+  rating: number;
+  comment: string;
+}
+
+export interface Review {
+  id: number;
+  client_name: string;
+  email: string;
+  rating: number;
+  comment: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+  updatedAt: string;
+}
+
 // API Response Types
 export interface ApiResponse<T = any> {
   success: boolean;

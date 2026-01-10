@@ -14,12 +14,14 @@ import {
   User,
   X,
   Edit3,
-  Palette
+  Palette,
+  Star
 } from 'lucide-react';
 import { apiService, MediaItem, LoginRequest } from '../lib/apiService';
 import TextContentEditor from './TextContentEditor';
 import BackgroundManager from './BackgroundManager';
 import QuotationManager from './QuotationManager';
+import ReviewManager from './ReviewManager';
 
 const AdminPage: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -37,11 +39,13 @@ const AdminPage: React.FC = () => {
   // Dashboard states
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploadQueue, setUploadQueue] = useState<Array<{file: File, title: string, caption: string, category: string}>>([]);
+  const [uploadProgress, setUploadProgress] = useState<{current: number, total: number}>({current: 0, total: 0});
   const [uploadData, setUploadData] = useState({
     title: '',
     caption: '',
-    category: 'Weddings'
+    category: 'Portrait'
   });
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -50,8 +54,12 @@ const AdminPage: React.FC = () => {
   const [showTextEditor, setShowTextEditor] = useState(false);
   const [showBackgroundManager, setShowBackgroundManager] = useState(false);
   const [showQuotationManager, setShowQuotationManager] = useState(false);
+  const [showReviewManager, setShowReviewManager] = useState(false);
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState('');
 
-  const categories = ['All', 'Weddings', 'Pre Wedding', 'Engagement', 'Fashion', 'Portrait', 'Commercial', 'Events', 'Maternity'];
+  // Exactly 12 categories + 'All' = 13 total (matching Portfolio page)
+  const categories = ['All', 'Portrait', 'Wedding', 'Fashion', 'Commercial', 'Event', 'Engagement', 'Pre Wedding', 'Maternity', 'Client Edits', 'Reels', 'Celebrity Shoots', 'Motion Graphics'];
 
   useEffect(() => {
     // Check if user is already authenticated
@@ -105,44 +113,89 @@ const AdminPage: React.FC = () => {
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      if (!uploadData.title) {
-        setUploadData(prev => ({ ...prev, title: file.name.split('.')[0] }));
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      setSelectedFiles(files);
+      // Create upload queue with default titles
+      const queue = files.map(file => ({
+        file,
+        title: file.name.split('.')[0],
+        caption: uploadData.caption,
+        category: uploadData.category
+      }));
+      setUploadQueue(queue);
+      // Set default title if not already set
+      if (!uploadData.title && files.length === 1) {
+        setUploadData(prev => ({ ...prev, title: files[0].name.split('.')[0] }));
       }
     }
   };
 
+  const updateQueueItem = (index: number, updates: Partial<{title: string, caption: string, category: string}>) => {
+    setUploadQueue(prev => prev.map((item, i) => 
+      i === index ? { ...item, ...updates } : item
+    ));
+  };
+
   const handleUpload = async () => {
-    if (!selectedFile) return;
+    if (uploadQueue.length === 0) return;
 
     setIsUploading(true);
     setError('');
+    setUploadProgress({ current: 0, total: uploadQueue.length });
+
+    const errors: string[] = [];
+    const successCount = { count: 0 };
 
     try {
-      const response = await apiService.uploadMedia(
-        selectedFile,
-        uploadData.title,
-        uploadData.caption,
-        uploadData.category
-      );
+      // Upload files sequentially to avoid overwhelming the server
+      for (let i = 0; i < uploadQueue.length; i++) {
+        const item = uploadQueue[i];
+        setUploadProgress({ current: i + 1, total: uploadQueue.length });
 
-      if (response.success) {
-        setSuccess('File uploaded successfully!');
-        setUploadData({ title: '', caption: '', category: 'Weddings' });
-        setSelectedFile(null);
+        try {
+          const response = await apiService.uploadMedia(
+            item.file,
+            item.title || item.file.name.split('.')[0],
+            item.caption,
+            item.category
+          );
+
+          if (response.success) {
+            successCount.count++;
+          } else {
+            errors.push(`${item.file.name}: ${response.message || 'Upload failed'}`);
+          }
+        } catch (error: any) {
+          errors.push(`${item.file.name}: ${error.message || 'Upload failed'}`);
+        }
+      }
+
+      if (errors.length === 0) {
+        setSuccess(`Successfully uploaded ${successCount.count} file(s)!`);
+        setUploadData({ title: '', caption: '', category: 'Portrait' });
+        setSelectedFiles([]);
+        setUploadQueue([]);
         setShowUploadModal(false);
         fetchMedia();
-        setTimeout(() => setSuccess(''), 3000);
+        setTimeout(() => setSuccess(''), 5000);
+      } else if (successCount.count > 0) {
+        setSuccess(`Uploaded ${successCount.count} file(s) successfully. ${errors.length} failed.`);
+        setError(errors.join('; '));
+        fetchMedia(); // Refresh to show successfully uploaded items
+        setTimeout(() => {
+          setSuccess('');
+          setError('');
+        }, 5000);
       } else {
-        setError(response.message || 'Upload failed');
+        setError(`All uploads failed: ${errors.join('; ')}`);
       }
     } catch (error: any) {
       console.error('Upload error:', error);
       setError(error.message || 'Upload failed. Please try again.');
     } finally {
       setIsUploading(false);
+      setUploadProgress({ current: 0, total: 0 });
     }
   };
 
@@ -165,6 +218,45 @@ const AdminPage: React.FC = () => {
     }
   };
 
+  const handleStartEdit = (item: MediaItem) => {
+    setEditingItemId(item.id);
+    setEditingTitle(item.title);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingItemId(null);
+    setEditingTitle('');
+  };
+
+  const handleSaveEdit = async (id: string) => {
+    if (!editingTitle.trim()) {
+      setError('Title cannot be empty');
+      return;
+    }
+
+    try {
+      const response = await apiService.updateMedia(id, { title: editingTitle });
+
+      if (response.success) {
+        setSuccess('Title updated successfully!');
+        setEditingItemId(null);
+        setEditingTitle('');
+        fetchMedia();
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        setError(response.message || 'Failed to update title');
+      }
+    } catch (error: any) {
+      console.error('Update error:', error);
+      setError(error.message || 'Failed to update title. Please try again.');
+    }
+  };
+
+  const removeFromQueue = (index: number) => {
+    setUploadQueue(prev => prev.filter((_, i) => i !== index));
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleLogout = async () => {
     try {
       await apiService.logout();
@@ -185,9 +277,22 @@ const AdminPage: React.FC = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  // Helper to match categories (handle plural/singular variations)
+  const categoryMatches = (itemCategory: string, filterCategory: string) => {
+    if (itemCategory === filterCategory) return true;
+    // Handle plural/singular mismatches
+    if ((itemCategory === 'Weddings' && filterCategory === 'Wedding') || 
+        (itemCategory === 'Wedding' && filterCategory === 'Weddings')) return true;
+    if ((itemCategory === 'Portraits' && filterCategory === 'Portrait') || 
+        (itemCategory === 'Portrait' && filterCategory === 'Portraits')) return true;
+    if ((itemCategory === 'Events' && filterCategory === 'Event') || 
+        (itemCategory === 'Event' && filterCategory === 'Events')) return true;
+    return false;
+  };
+
   const filteredMedia = selectedCategory === 'All' 
     ? mediaItems 
-    : mediaItems.filter(item => item.category === selectedCategory);
+    : mediaItems.filter(item => categoryMatches(item.category, selectedCategory));
 
   if (loading) {
     return (
@@ -347,6 +452,13 @@ const AdminPage: React.FC = () => {
                 <span>View Quotations</span>
               </button>
               <button
+                onClick={() => setShowReviewManager(true)}
+                className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-6 py-2 rounded-xl hover:from-yellow-600 hover:to-orange-600 transition-all duration-300 flex items-center space-x-2"
+              >
+                <Star className="w-5 h-5" />
+                <span>Manage Reviews</span>
+              </button>
+              <button
                 onClick={() => setShowUploadModal(true)}
                 className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-2 rounded-xl hover:from-orange-600 hover:to-red-600 transition-all duration-300 flex items-center space-x-2"
               >
@@ -474,12 +586,21 @@ const AdminPage: React.FC = () => {
                   <button
                     onClick={() => window.open(item.file_url, '_blank')}
                     className="bg-white/20 backdrop-blur-sm text-white p-2 rounded-lg hover:bg-white/30 transition-colors"
+                    title="View"
                   >
                     <Eye className="w-5 h-5" />
                   </button>
                   <button
+                    onClick={() => handleStartEdit(item)}
+                    className="bg-blue-500/20 backdrop-blur-sm text-blue-400 p-2 rounded-lg hover:bg-blue-500/30 transition-colors"
+                    title="Edit title"
+                  >
+                    <Edit3 className="w-5 h-5" />
+                  </button>
+                  <button
                     onClick={() => handleDelete(item.id)}
                     className="bg-red-500/20 backdrop-blur-sm text-red-400 p-2 rounded-lg hover:bg-red-500/30 transition-colors"
+                    title="Delete"
                   >
                     <Trash2 className="w-5 h-5" />
                   </button>
@@ -488,13 +609,57 @@ const AdminPage: React.FC = () => {
 
               {/* Media Info */}
               <div className="p-4">
-                <h3 className="text-white font-semibold truncate mb-1">{item.title}</h3>
-                <p className="text-gray-400 text-sm mb-2">{item.category}</p>
-                <p className="text-gray-500 text-xs">
-                  {formatFileSize(item.file_size)} • {new Date(item.uploaded_at).toLocaleDateString()}
-                </p>
-                {item.caption && (
-                  <p className="text-gray-400 text-sm mt-2 line-clamp-2">{item.caption}</p>
+                {editingItemId === item.id ? (
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      value={editingTitle}
+                      onChange={(e) => setEditingTitle(e.target.value)}
+                      className="w-full p-2 bg-white/10 border border-white/20 rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleSaveEdit(item.id);
+                        } else if (e.key === 'Escape') {
+                          handleCancelEdit();
+                        }
+                      }}
+                      autoFocus
+                    />
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleSaveEdit(item.id)}
+                        className="flex-1 px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded hover:bg-green-500/30 transition-colors"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={handleCancelEdit}
+                        className="flex-1 px-2 py-1 bg-gray-500/20 text-gray-400 text-xs rounded hover:bg-gray-500/30 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-start justify-between mb-1">
+                      <h3 className="text-white font-semibold truncate flex-1">{item.title}</h3>
+                      <button
+                        onClick={() => handleStartEdit(item)}
+                        className="ml-2 text-gray-400 hover:text-orange-400 transition-colors flex-shrink-0"
+                        title="Edit title"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <p className="text-gray-400 text-sm mb-2">{item.category}</p>
+                    <p className="text-gray-500 text-xs">
+                      {formatFileSize(item.file_size)} • {new Date(item.uploaded_at).toLocaleDateString()}
+                    </p>
+                    {item.caption && (
+                      <p className="text-gray-400 text-sm mt-2 line-clamp-2">{item.caption}</p>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -524,12 +689,21 @@ const AdminPage: React.FC = () => {
       {/* Upload Modal */}
       {showUploadModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-900 border border-white/10 rounded-2xl p-6 w-full max-w-md">
+          <div className="bg-gray-900 border border-white/10 rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-white">Upload Media</h2>
               <button
-                onClick={() => setShowUploadModal(false)}
-                className="text-gray-400 hover:text-white transition-colors"
+                onClick={() => {
+                  if (!isUploading) {
+                    setShowUploadModal(false);
+                    setSelectedFiles([]);
+                    setUploadQueue([]);
+                    setUploadData({ title: '', caption: '', category: 'Portrait' });
+                    setError('');
+                  }
+                }}
+                disabled={isUploading}
+                className="text-gray-400 hover:text-white transition-colors disabled:opacity-50"
               >
                 <X className="w-6 h-6" />
               </button>
@@ -539,38 +713,77 @@ const AdminPage: React.FC = () => {
               {/* File Input */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Select File
+                  Select Files (Multiple files allowed)
                 </label>
                 <input
                   type="file"
                   onChange={handleFileSelect}
                   accept="image/*,video/*"
+                  multiple
                   className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-500 file:text-white hover:file:bg-orange-600"
                 />
+                {selectedFiles.length > 0 && (
+                  <p className="text-gray-400 text-sm mt-2">
+                    {selectedFiles.length} file(s) selected
+                  </p>
+                )}
               </div>
 
-              {/* Title */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Title
-                </label>
-                <input
-                  type="text"
-                  value={uploadData.title}
-                  onChange={(e) => setUploadData(prev => ({ ...prev, title: e.target.value }))}
-                  className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  placeholder="Enter title"
-                />
-              </div>
+              {/* Upload Queue */}
+              {uploadQueue.length > 0 && (
+                <div className="max-h-64 overflow-y-auto space-y-3 p-3 bg-white/5 rounded-xl border border-white/10">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Files to Upload ({uploadQueue.length})
+                  </label>
+                  {uploadQueue.map((item, index) => (
+                    <div key={index} className="bg-white/5 p-3 rounded-lg border border-white/10">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white text-sm truncate">{item.file.name}</p>
+                          <p className="text-gray-400 text-xs">{formatFileSize(item.file.size)}</p>
+                        </div>
+                        <button
+                          onClick={() => removeFromQueue(index)}
+                          className="ml-2 text-red-400 hover:text-red-300 transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        value={item.title}
+                        onChange={(e) => updateQueueItem(index, { title: e.target.value })}
+                        className="w-full p-2 bg-white/5 border border-white/10 rounded text-white text-sm placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-orange-500 mb-2"
+                        placeholder="Enter title"
+                      />
+                      <select
+                        value={item.category}
+                        onChange={(e) => updateQueueItem(index, { category: e.target.value })}
+                        className="w-full p-2 bg-white/5 border border-white/10 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-orange-500"
+                      >
+                        {categories.slice(1).map((category) => (
+                          <option key={category} value={category} className="bg-gray-800">
+                            {category}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              )}
 
-              {/* Category */}
+              {/* Default Category (applies to all new files) */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Category
+                  Default Category (for new files)
                 </label>
                 <select
                   value={uploadData.category}
-                  onChange={(e) => setUploadData(prev => ({ ...prev, category: e.target.value }))}
+                  onChange={(e) => {
+                    setUploadData(prev => ({ ...prev, category: e.target.value }));
+                    // Update all queue items
+                    setUploadQueue(prev => prev.map(item => ({ ...item, category: e.target.value })));
+                  }}
                   className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
                 >
                   {categories.slice(1).map((category) => (
@@ -581,33 +794,62 @@ const AdminPage: React.FC = () => {
                 </select>
               </div>
 
-              {/* Caption */}
+              {/* Default Caption (applies to all new files) */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Caption (Optional)
+                  Default Caption (Optional, applies to all files)
                 </label>
                 <textarea
                   value={uploadData.caption}
-                  onChange={(e) => setUploadData(prev => ({ ...prev, caption: e.target.value }))}
+                  onChange={(e) => {
+                    setUploadData(prev => ({ ...prev, caption: e.target.value }));
+                    // Update all queue items
+                    setUploadQueue(prev => prev.map(item => ({ ...item, caption: e.target.value })));
+                  }}
                   className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 h-20 resize-none"
-                  placeholder="Enter caption"
+                  placeholder="Enter caption (will apply to all files)"
                 />
               </div>
+
+              {/* Upload Progress */}
+              {isUploading && uploadProgress.total > 0 && (
+                <div className="bg-white/5 p-3 rounded-lg border border-white/10">
+                  <div className="flex justify-between text-sm text-gray-300 mb-2">
+                    <span>Uploading...</span>
+                    <span>{uploadProgress.current} / {uploadProgress.total}</span>
+                  </div>
+                  <div className="w-full bg-gray-700 rounded-full h-2">
+                    <div
+                      className="bg-gradient-to-r from-orange-500 to-red-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex space-x-4 mt-6">
               <button
-                onClick={() => setShowUploadModal(false)}
-                className="flex-1 py-3 px-4 bg-white/5 text-white rounded-xl hover:bg-white/10 transition-colors"
+                onClick={() => {
+                  if (!isUploading) {
+                    setShowUploadModal(false);
+                    setSelectedFiles([]);
+                    setUploadQueue([]);
+                    setUploadData({ title: '', caption: '', category: 'Portrait' });
+                    setError('');
+                  }
+                }}
+                disabled={isUploading}
+                className="flex-1 py-3 px-4 bg-white/5 text-white rounded-xl hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
                 onClick={handleUpload}
-                disabled={!selectedFile || isUploading}
+                disabled={uploadQueue.length === 0 || isUploading}
                 className="flex-1 py-3 px-4 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl hover:from-orange-600 hover:to-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
               >
-                {isUploading ? 'Uploading...' : 'Upload'}
+                {isUploading ? `Uploading ${uploadProgress.current}/${uploadProgress.total}...` : `Upload ${uploadQueue.length} File(s)`}
               </button>
             </div>
           </div>
@@ -627,6 +869,11 @@ const AdminPage: React.FC = () => {
       {/* Quotation Manager Modal */}
       {showQuotationManager && (
         <QuotationManager onClose={() => setShowQuotationManager(false)} />
+      )}
+
+      {/* Review Manager Modal */}
+      {showReviewManager && (
+        <ReviewManager onClose={() => setShowReviewManager(false)} />
       )}
     </div>
   );

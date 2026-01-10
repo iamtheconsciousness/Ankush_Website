@@ -81,6 +81,24 @@ export interface Quotation {
   updatedAt: string;
 }
 
+export interface ReviewRequest {
+  client_name: string;
+  email: string;
+  rating: number;
+  comment: string;
+}
+
+export interface Review {
+  id: number;
+  client_name: string;
+  email: string;
+  rating: number;
+  comment: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+  updatedAt: string;
+}
+
 class ApiService {
   private baseURL: string;
   private token: string | null = null;
@@ -310,6 +328,40 @@ class ApiService {
 
   async deleteQuotation(id: number): Promise<ApiResponse> {
     return this.request<ApiResponse>(`/admin/quotations/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Review methods
+  async submitReview(reviewData: ReviewRequest): Promise<ApiResponse<Review>> {
+    return this.request<ApiResponse<Review>>('/reviews', {
+      method: 'POST',
+      body: JSON.stringify(reviewData),
+    });
+  }
+
+  async getApprovedReviews(): Promise<ApiResponse<Review[]>> {
+    return this.request<ApiResponse<Review[]>>('/reviews/approved');
+  }
+
+  async getAllReviews(status?: 'pending' | 'approved' | 'rejected'): Promise<ApiResponse<Review[]>> {
+    const query = status ? `?status=${status}` : '';
+    return this.request<ApiResponse<Review[]>>(`/admin/reviews${query}`);
+  }
+
+  async getReviewById(id: number): Promise<ApiResponse<Review>> {
+    return this.request<ApiResponse<Review>>(`/admin/reviews/${id}`);
+  }
+
+  async updateReviewStatus(id: number, status: 'pending' | 'approved' | 'rejected'): Promise<ApiResponse<Review>> {
+    return this.request<ApiResponse<Review>>(`/admin/reviews/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
+  }
+
+  async deleteReview(id: number): Promise<ApiResponse> {
+    return this.request<ApiResponse>(`/admin/reviews/${id}`, {
       method: 'DELETE',
     });
   }

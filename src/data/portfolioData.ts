@@ -17,6 +17,7 @@ function convertMediaItemToPhoto(mediaItem: MediaItem): Photo {
     category: mediaItem.category,
     width: 1200, // Default width, could be extracted from image metadata
     height: 800, // Default height, could be extracted from image metadata
+    media_type: mediaItem.media_type, // Preserve media type (photo, video, or reel)
   };
 }
 

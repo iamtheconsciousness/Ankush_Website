@@ -57,7 +57,7 @@ export default function Lightbox({ photo, onClose, onNext, onPrev }: LightboxPro
         onClick={(e) => e.target === e.currentTarget && onClose()}
       >
         <div className="relative">
-          {photo.media_type === 'video' ? (
+          {photo.media_type === 'video' || photo.media_type === 'reel' ? (
             <video
               src={photo.url}
               className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"

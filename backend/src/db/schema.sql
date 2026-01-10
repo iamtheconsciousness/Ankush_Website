@@ -52,6 +52,18 @@ CREATE TABLE IF NOT EXISTS quotations (
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Reviews table for storing client reviews
+CREATE TABLE IF NOT EXISTS reviews (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  client_name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  comment TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Insert default text content
 INSERT OR IGNORE INTO text_content (key, value) VALUES
   ('photographer_name', 'Ankush Painuly'),
@@ -76,3 +88,6 @@ CREATE INDEX IF NOT EXISTS idx_background_images_section_name ON background_imag
 CREATE INDEX IF NOT EXISTS idx_quotations_status ON quotations(status);
 CREATE INDEX IF NOT EXISTS idx_quotations_created_at ON quotations(created_at);
 CREATE INDEX IF NOT EXISTS idx_quotations_service ON quotations(service);
+CREATE INDEX IF NOT EXISTS idx_reviews_status ON reviews(status);
+CREATE INDEX IF NOT EXISTS idx_reviews_rating ON reviews(rating);
+CREATE INDEX IF NOT EXISTS idx_reviews_created_at ON reviews(created_at);

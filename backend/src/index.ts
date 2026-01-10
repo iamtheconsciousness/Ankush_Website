@@ -12,6 +12,7 @@ import mediaRoutes from './routes/media';
 import textContentRoutes from './routes/textContent';
 import { createBackgroundRoutes } from './routes/backgrounds';
 import { createQuotationRoutes } from './routes/quotations';
+import { createReviewRoutes } from './routes/reviews';
 
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '../.env') });
@@ -122,6 +123,7 @@ app.use('/api/media', mediaRoutes);
 app.use('/api/text-content', textContentRoutes);
 app.use('/api', createBackgroundRoutes());
 app.use('/api', createQuotationRoutes());
+app.use('/api', createReviewRoutes());
 
 // 404 handler
 app.use('*', (req, res) => {

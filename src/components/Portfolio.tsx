@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Upload, X, Image as ImageIcon, Plus, Trash2, Eye, Lock } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, Plus, Trash2, Eye } from 'lucide-react';
 import { Photo } from '../data/portfolioData';
 import { apiService, MediaItem } from '../lib/apiService';
 import { isAdmin, logout } from '../lib/auth';
@@ -23,12 +23,34 @@ export default function Portfolio() {
   const [showCategoryPage, setShowCategoryPage] = useState(false);
   const [selectedCategoryForPage, setSelectedCategoryForPage] = useState<string>('');
 
-  const categories = ['All', ...Array.from(new Set(photos.map((p) => p.category)))];
+  // Define all available categories (exactly 12 categories matching upload form)
+  // Order matches the upload form dropdown
+  const allAvailableCategories = [
+    'Portrait', 'Wedding', 'Fashion', 'Commercial', 'Event', 
+    'Engagement', 'Pre Wedding', 'Maternity',
+    'Client Edits', 'Reels', 'Celebrity Shoots', 'Motion Graphics'
+  ];
+  
+  // Always show exactly these 12 categories (plus 'All' = 13 buttons total)
+  const categories = ['All', ...allAvailableCategories];
+
+  // Helper to match categories (handle plural/singular variations)
+  const categoryMatches = (photoCategory: string, filterCategory: string) => {
+    if (photoCategory === filterCategory) return true;
+    // Handle plural/singular mismatches
+    if ((photoCategory === 'Weddings' && filterCategory === 'Wedding') || 
+        (photoCategory === 'Wedding' && filterCategory === 'Weddings')) return true;
+    if ((photoCategory === 'Portraits' && filterCategory === 'Portrait') || 
+        (photoCategory === 'Portrait' && filterCategory === 'Portraits')) return true;
+    if ((photoCategory === 'Events' && filterCategory === 'Event') || 
+        (photoCategory === 'Event' && filterCategory === 'Events')) return true;
+    return false;
+  };
 
   const filteredPhotos =
     selectedCategory === 'All'
       ? photos
-      : photos.filter((p) => p.category === selectedCategory);
+      : photos.filter((p) => categoryMatches(p.category, selectedCategory));
 
   useEffect(() => {
     loadPhotos();
@@ -265,7 +287,7 @@ export default function Portfolio() {
               onClick={() => setSelectedPhoto(photo)}
             >
               <div className="aspect-[3/4] overflow-hidden">
-                {photo.media_type === 'video' ? (
+                {photo.media_type === 'video' || photo.media_type === 'reel' ? (
                   <video
                     src={photo.url}
                     className="w-full h-full object-cover transform transition-transform duration-700 group-hover:scale-110"
@@ -398,9 +420,15 @@ export default function Portfolio() {
                   <option value="Portrait" className="bg-gray-800">Portrait</option>
                   <option value="Wedding" className="bg-gray-800">Wedding</option>
                   <option value="Fashion" className="bg-gray-800">Fashion</option>
-                  <option value="Landscape" className="bg-gray-800">Landscape</option>
                   <option value="Commercial" className="bg-gray-800">Commercial</option>
                   <option value="Event" className="bg-gray-800">Event</option>
+                  <option value="Engagement" className="bg-gray-800">Engagement</option>
+                  <option value="Pre Wedding" className="bg-gray-800">Pre Wedding</option>
+                  <option value="Maternity" className="bg-gray-800">Maternity</option>
+                  <option value="Client Edits" className="bg-gray-800">Client Edits</option>
+                  <option value="Reels" className="bg-gray-800">Reels</option>
+                  <option value="Celebrity Shoots" className="bg-gray-800">Celebrity Shoots</option>
+                  <option value="Motion Graphics" className="bg-gray-800">Motion Graphics</option>
                 </select>
               </div>
 
@@ -474,7 +502,7 @@ export default function Portfolio() {
         <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="max-w-6xl max-h-[90vh] w-full">
             <div className="relative">
-              {selectedPhoto.media_type === 'video' ? (
+              {selectedPhoto.media_type === 'video' || selectedPhoto.media_type === 'reel' ? (
                 <video
                   src={selectedPhoto.url}
                   className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl mx-auto"

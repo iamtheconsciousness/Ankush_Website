@@ -136,7 +136,7 @@ const PortfolioCategory: React.FC<PortfolioCategoryProps> = ({ category, onBack 
                   onClick={() => openLightbox(photo)}
                 >
                   <div className="aspect-square bg-gray-800 rounded-xl overflow-hidden relative">
-                    {photo.media_type === 'video' ? (
+                    {photo.media_type === 'video' || photo.media_type === 'reel' ? (
                       <video
                         src={photo.url}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"

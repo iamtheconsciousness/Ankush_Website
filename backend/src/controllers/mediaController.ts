@@ -118,7 +118,12 @@ export class MediaController {
       );
 
       // Determine media type
-      const mediaType = this.getR2Service().getMediaType(file.mimetype);
+      let mediaType = this.getR2Service().getMediaType(file.mimetype);
+      
+      // If category is "Reels" and media type is video, set it to 'reel'
+      if (category === 'Reels' && mediaType === 'video') {
+        mediaType = 'reel';
+      }
 
       // Save to database
       const mediaData = {

@@ -9,7 +9,7 @@ export default function About({ onNavigate }: AboutProps) {
   const stats = [
     { icon: Camera, value: '10+', label: 'Years Experience' },
     { icon: Users, value: '500+', label: 'Happy Clients' },
-    { icon: Heart, value: '200+', label: 'Weddings Shot' },
+    { icon: Heart, value: '10k+', label: 'Shoots' },
     { icon: Award, value: '15+', label: 'Awards Won' },
   ];
 
