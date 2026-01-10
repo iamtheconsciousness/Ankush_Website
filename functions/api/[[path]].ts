@@ -573,7 +573,15 @@ app.post('/api/reviews', async (c) => {
     return jsonError(c, 500, 'Failed to submit review');
   }
 
-  const review = await c.env.DB.prepare('SELECT * FROM reviews WHERE id = ?').bind(result.meta.last_row_id).first();
+  // Get the ID of the newly inserted row
+  const lastIdResult = await c.env.DB.prepare('SELECT last_insert_rowid() as id').first<{ id: number }>();
+  const reviewId = lastIdResult?.id || (result.meta as any)?.last_row_id;
+  
+  if (!reviewId) {
+    return jsonError(c, 500, 'Failed to retrieve review ID');
+  }
+
+  const review = await c.env.DB.prepare('SELECT * FROM reviews WHERE id = ?').bind(reviewId).first();
   
   return c.json({
     success: true,
