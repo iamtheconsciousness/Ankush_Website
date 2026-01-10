@@ -535,6 +535,123 @@ app.delete('/api/admin/quotations/:id', requireAuth, async (c) => {
   return c.json({ success: true, message: 'Quotation deleted' });
 });
 
+// ---------- Reviews ----------
+app.post('/api/reviews', async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const { client_name, email, rating, comment } = body as any;
+  
+  // Validate required fields
+  if (!client_name || !email || !rating || !comment) {
+    return jsonError(c, 400, 'All fields are required');
+  }
+
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return jsonError(c, 400, 'Please provide a valid email address');
+  }
+
+  // Validate rating (1-5)
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    return jsonError(c, 400, 'Rating must be an integer between 1 and 5');
+  }
+
+  // Validate comment length
+  if (comment.trim().length < 10) {
+    return jsonError(c, 400, 'Comment must be at least 10 characters long');
+  }
+
+  // Insert review
+  const result = await c.env.DB.prepare(
+    `INSERT INTO reviews (client_name, email, rating, comment, status, created_at, updated_at)
+     VALUES (?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`
+  )
+    .bind(client_name.trim(), email.trim().toLowerCase(), rating, comment.trim())
+    .run();
+
+  if (!result.success) {
+    return jsonError(c, 500, 'Failed to submit review');
+  }
+
+  const review = await c.env.DB.prepare('SELECT * FROM reviews WHERE id = ?').bind(result.meta.last_row_id).first();
+  
+  return c.json({
+    success: true,
+    message: 'Review submitted successfully. It will be published after approval.',
+    data: review
+  });
+});
+
+app.get('/api/reviews/approved', async (c) => {
+  const rows = (await c.env.DB.prepare("SELECT * FROM reviews WHERE status = 'approved' ORDER BY created_at DESC").all()).results;
+  return c.json({ success: true, data: rows, message: 'Approved reviews retrieved successfully' });
+});
+
+app.get('/api/admin/reviews', requireAuth, async (c) => {
+  const status = c.req.query('status') as 'pending' | 'approved' | 'rejected' | undefined;
+  let query = 'SELECT * FROM reviews';
+  let params: any[] = [];
+  
+  if (status && ['pending', 'approved', 'rejected'].includes(status)) {
+    query += ' WHERE status = ?';
+    params.push(status);
+  }
+  
+  query += ' ORDER BY created_at DESC';
+  
+  const stmt = params.length > 0 
+    ? c.env.DB.prepare(query).bind(...params)
+    : c.env.DB.prepare(query);
+    
+  const rows = (await stmt.all()).results;
+  return c.json({ success: true, data: rows, message: 'Reviews retrieved successfully' });
+});
+
+app.get('/api/admin/reviews/:id', requireAuth, async (c) => {
+  const id = c.req.param('id');
+  const row = await c.env.DB.prepare('SELECT * FROM reviews WHERE id = ?').bind(id).first();
+  if (!row) return jsonError(c, 404, 'Review not found');
+  return c.json({ success: true, data: row, message: 'Review retrieved successfully' });
+});
+
+app.put('/api/admin/reviews/:id/status', requireAuth, async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.json().catch(() => ({}));
+  const status = body.status as string;
+  
+  if (!['pending', 'approved', 'rejected'].includes(status)) {
+    return jsonError(c, 400, 'Invalid status. Must be one of: pending, approved, rejected');
+  }
+  
+  const result = await c.env.DB.prepare('UPDATE reviews SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+    .bind(status, id)
+    .run();
+    
+  if (!result.success) {
+    return jsonError(c, 500, 'Failed to update review status');
+  }
+  
+  const row = await c.env.DB.prepare('SELECT * FROM reviews WHERE id = ?').bind(id).first();
+  if (!row) return jsonError(c, 404, 'Review not found');
+  
+  return c.json({
+    success: true,
+    data: row,
+    message: `Review status updated to ${status} successfully`
+  });
+});
+
+app.delete('/api/admin/reviews/:id', requireAuth, async (c) => {
+  const id = c.req.param('id');
+  const result = await c.env.DB.prepare('DELETE FROM reviews WHERE id = ?').bind(id).run();
+  
+  if (!result.success) {
+    return jsonError(c, 500, 'Failed to delete review');
+  }
+  
+  return c.json({ success: true, message: 'Review deleted successfully' });
+});
+
 // ---------- Export for Pages Functions ----------
 // This file is in functions/api/[[path]].ts, so it only handles /api/* routes
 export const onRequest: PagesFunction<Env['Bindings']> = async (context) => {
